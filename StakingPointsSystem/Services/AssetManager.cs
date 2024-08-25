@@ -13,8 +13,17 @@ public class AssetManager : IAssetManager
         _stakingPointsDbContext = stakingPointsDbContext;
     }
 
-    public async Task Deposit(Asset asset)
+    public async Task Deposit(string assetUsername, int assetUnit, AssetType assetAssetType)
     {
+        var asset = new Asset()
+        {
+            AssetType = assetAssetType,
+            Unit = assetUnit,
+            Username = assetUsername,
+            TransactionType = TransactionType.Deposit,
+            CreatedTime = DateTime.Now
+        };
+
         _stakingPointsDbContext.Assets.Add(asset);
         await _stakingPointsDbContext.SaveChangesAsync();
     }

@@ -23,17 +23,17 @@ public class AssetManagerTests
         var mockContext = new StakingPointsDbContext(options);
         var assetManager = new AssetManager(mockContext);
 
-        var asset = new Asset()
+        var asset = new
         {
             Username = "olga",
-            TransactionType = TransactionType.Deposit,
             Unit = 4,
-            CreatedTime = DateTime.Now,
-            AssetType = AssetType.Banana
+            AssetType = AssetType.Banana,
+            TransactionType = TransactionType.Deposit
         };
 
-        await assetManager.Deposit(asset);
-        mockContext.Assets.Any(x => x.Username == asset.Username && x.CreatedTime == asset.CreatedTime).Should()
-            .BeTrue();
+        await assetManager.Deposit(asset.Username, asset.Unit, asset.AssetType);
+
+        mockContext.Assets.Single(x => x.Username == asset.Username && x.AssetType == asset.AssetType).Should()
+            .BeEquivalentTo(asset);
     }
 }
