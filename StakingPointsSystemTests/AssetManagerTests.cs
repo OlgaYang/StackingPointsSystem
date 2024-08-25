@@ -9,20 +9,23 @@ namespace StakingPointsSystemTests;
 
 public class AssetManagerTests
 {
+    private DbContextOptions<StakingPointsDbContext> _options;
+    private StakingPointsDbContext _mockContext;
+    private AssetManager _assetManager;
+
     [SetUp]
     public void Setup()
     {
+        _options = new DbContextOptionsBuilder<StakingPointsDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDatabase")
+            .Options;
+        _mockContext = new StakingPointsDbContext(_options);
+        _assetManager = new AssetManager(_mockContext);
     }
 
     [Test]
     public async Task user_deposit_a_banana()
     {
-        var options = new DbContextOptionsBuilder<StakingPointsDbContext>()
-            .UseInMemoryDatabase(databaseName: "TestDatabase")
-            .Options;
-        var mockContext = new StakingPointsDbContext(options);
-        var assetManager = new AssetManager(mockContext);
-
         var asset = new
         {
             Username = "olga",
@@ -31,9 +34,9 @@ public class AssetManagerTests
             TransactionType = TransactionType.Deposit
         };
 
-        await assetManager.Deposit(asset.Username, asset.Unit, asset.AssetType);
+        await _assetManager.Deposit(asset.Username, asset.Unit, asset.AssetType);
 
-        mockContext.Assets.Single(x => x.Username == asset.Username && x.AssetType == asset.AssetType).Should()
+        _mockContext.Assets.Single(x => x.Username == asset.Username && x.AssetType == asset.AssetType).Should()
             .BeEquivalentTo(asset);
     }
 }
