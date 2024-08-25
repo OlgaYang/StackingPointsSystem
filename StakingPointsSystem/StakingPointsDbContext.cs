@@ -11,7 +11,7 @@ public class StakingPointsDbContext : DbContext
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<UserEntity>().ToTable("Users").HasKey(x=>x.UserName);
+        modelBuilder.Entity<UserEntity>().ToTable("Users").HasKey(x=>x.Username);
     }
     
     public DbSet<UserEntity> UserEntities { get; set; } 
@@ -19,7 +19,7 @@ public class StakingPointsDbContext : DbContext
 
 public class UserEntity
 {
-    public string  UserName { get; set; }
+    public string  Username { get; set; }
     public string Email { get; set; }
     public string Name { get; set; }
     public string Password { get; set; }
