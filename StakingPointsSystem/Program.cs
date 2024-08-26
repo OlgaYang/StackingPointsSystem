@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using StakingPointsSystem;
+using StakingPointsSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddHostedService<TimedHostedService>();
+builder.Services.AddScoped<ScoreCalculator>();
 builder.Services.AddDbContext<StakingPointsDbContext>(options =>
-    // options.UseSqlServer(builder.Configuration.GetConnectionString("SchoolContext")));
     options.UseSqlServer("Server=DESKTOP-MN3CUAK;Database=StakingPoints;Trusted_Connection=True;"));
 
 builder.Services.AddControllers();

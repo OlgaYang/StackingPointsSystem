@@ -33,7 +33,7 @@ public class Balance
 {
     public int UserId { get; set; }
     public AssetType AssetType { get; set; }
-    public int Unit { get; set; }
+    public decimal Unit { get; set; }
 
     public IStatement ToStatement()
     {

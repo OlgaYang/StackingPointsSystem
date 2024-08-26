@@ -2,7 +2,7 @@
 
 public class WithdrawStatement : IStatement
 {
-    public WithdrawStatement(int userId, DateTime createdTime, AssetType assetType, int unit)
+    public WithdrawStatement(int userId, DateTime createdTime, AssetType assetType, decimal unit)
     {
         UserId = userId;
         WithdrawTime = createdTime;

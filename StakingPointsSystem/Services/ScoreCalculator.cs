@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
+﻿using Microsoft.EntityFrameworkCore;
 using StakingPointsSystem.Models;
 
 namespace StakingPointsSystem.Services;
@@ -8,10 +6,12 @@ namespace StakingPointsSystem.Services;
 public class ScoreCalculator
 {
     private readonly StakingPointsDbContext _dbContext;
+    private readonly ILogger<ScoreCalculator> _logger;
 
-    public ScoreCalculator(StakingPointsDbContext dbContext)
+    public ScoreCalculator(StakingPointsDbContext dbContext, ILogger<ScoreCalculator> _logger)
     {
         _dbContext = dbContext;
+        this._logger = _logger;
     }
 
     public async Task Calculate(DateTime updatedTime)
@@ -63,18 +63,21 @@ public class ScoreCalculator
     private async Task AddOrUpdateScore(IStatement previousStatement, DateRange updatePeriod)
     {
         var userScore = await _dbContext.UserScores.FindAsync(previousStatement.UserId);
+        var totalScore = previousStatement.TotalScore(updatePeriod);
+        _logger.LogInformation($"Adding score for {previousStatement.UserId} to {totalScore}");
+
         if (userScore == null)
         {
             _dbContext.Add(new UserScore
             {
                 UserId = previousStatement.UserId,
-                TotalScore = previousStatement.TotalScore(updatePeriod),
+                TotalScore = totalScore,
                 LastUpdatedTime = updatePeriod.EndTime
             });
         }
         else
         {
-            userScore!.TotalScore = previousStatement.TotalScore(updatePeriod);
+            userScore!.TotalScore = totalScore;
             userScore.LastUpdatedTime = updatePeriod.EndTime;
         }
     }

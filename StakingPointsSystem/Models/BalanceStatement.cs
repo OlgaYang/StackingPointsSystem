@@ -2,7 +2,7 @@
 
 public class BalanceStatement : IStatement
 {
-    public BalanceStatement(int userId, AssetType assetType, int unit)
+    public BalanceStatement(int userId, AssetType assetType, decimal unit)
     {
         UserId = userId;
         AssetType = assetType;
