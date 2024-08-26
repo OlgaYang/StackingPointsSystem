@@ -1,4 +1,6 @@
-﻿namespace StakingPointsSystem.Models;
+﻿using StakingPointsSystem.Services;
+
+namespace StakingPointsSystem.Models;
 
 public class BalanceStatement : IStatement
 {
@@ -15,7 +17,7 @@ public class BalanceStatement : IStatement
 
     protected override decimal CurrentScore(DateRange updatePeriod)
     {
-        var totalScore = (int)(updatePeriod.EndTime - updatePeriod.StartTime).TotalSeconds * GetBaseScore(AssetType) *
+        var totalScore = (int)(updatePeriod.EndTime.TrimMilliseconds() - updatePeriod.StartTime.TrimMilliseconds()).TotalSeconds * GetBaseScore(AssetType) *
                          Unit;
         return totalScore;
     }

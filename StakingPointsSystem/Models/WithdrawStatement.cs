@@ -1,4 +1,6 @@
-﻿namespace StakingPointsSystem.Models;
+﻿using StakingPointsSystem.Services;
+
+namespace StakingPointsSystem.Models;
 
 public class WithdrawStatement : IStatement
 {
@@ -18,7 +20,7 @@ public class WithdrawStatement : IStatement
     protected override decimal CurrentScore(DateRange updatePeriod)
     {
         // add score before withdraw
-        var totalScore = (int)(WithdrawTime - updatePeriod.StartTime).TotalSeconds * GetBaseScore(AssetType) * Unit;
+        var totalScore = (int)(WithdrawTime.TrimMilliseconds() - updatePeriod.StartTime.TrimMilliseconds()).TotalSeconds * GetBaseScore(AssetType) * Unit;
         return totalScore;
     }
 }

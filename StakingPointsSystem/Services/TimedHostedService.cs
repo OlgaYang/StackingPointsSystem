@@ -18,7 +18,7 @@ public class TimedHostedService : BackgroundService
         using PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
 
         await DoWork();
-        
+
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
@@ -39,7 +39,7 @@ public class TimedHostedService : BackgroundService
         using (var scope = _serviceProvider.CreateScope())
         {
             var scoreCalculator = scope.ServiceProvider.GetRequiredService<ScoreCalculator>();
-            await scoreCalculator.Calculate(DateTime.Now); 
+            await scoreCalculator.Calculate(DateTime.Now);
         }
     }
 }

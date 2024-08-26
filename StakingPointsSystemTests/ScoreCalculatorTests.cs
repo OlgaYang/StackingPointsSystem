@@ -1,5 +1,7 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NSubstitute;
 using StakingPointsSystem;
 using StakingPointsSystem.Models;
 using StakingPointsSystem.Services;
@@ -19,7 +21,8 @@ public class ScoreCalculatorTests
             .UseInMemoryDatabase(databaseName: "TestDatabase")
             .Options;
         _mockContext = new StakingPointsDbContext(options);
-        _scoreCalculator = new ScoreCalculator(_mockContext);
+        var logger = Substitute.For<ILogger<ScoreCalculator>>();
+        _scoreCalculator = new ScoreCalculator(_mockContext, logger);
     }
 
     [Test]
@@ -185,13 +188,14 @@ public class ScoreCalculatorTests
         var userId = 1;
         var userId2 = 2;
         _mockContext.Users.AddRange(new User { UserId = userId }, new User() { UserId = userId2 });
-        _mockContext.UserScores.Add(new UserScore { UserId = userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
+        _mockContext.UserScores.Add(new UserScore
+            { UserId = userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
         _mockContext.Assets.AddRange(new List<Asset>()
         {
             GetDepositAsset(userId, AssetType.Banana, 4, GetTime(59, 40)),
             GetDepositAsset(userId2, AssetType.Banana, 5, GetTime(59, 40)),
         });
-        
+
         _mockContext.Balances.Add(new Balance { UserId = userId, AssetType = AssetType.Banana, Unit = 6 });
         _mockContext.Balances.Add(new Balance { UserId = userId2, AssetType = AssetType.Banana, Unit = 5 });
 
@@ -204,6 +208,28 @@ public class ScoreCalculatorTests
 
         _mockContext.UserScores.Single(x => x.UserId == userId2).TotalScore
             .Should().Be((10 * 20 * 5));
+    }
+
+
+    [Test]
+    // 21:05:00.000 Deposit 5 apples 
+    // 22:32:21.550 Run update , Balance is 5 apples => 2620500 
+    // 22:33:21.547 Run update , Balance is 5 apples => 2620500 + 30000 = 2650500  
+    public async Task run_update_twice()
+    {
+        _mockContext.Users.AddRange(new User { UserId = _userId });
+        _mockContext.Assets.AddRange(new List<Asset>()
+        {
+            GetDepositAsset(_userId, AssetType.Apple, 5, new DateTime(2024, 8, 26, 21, 05, 0)),
+        });
+        _mockContext.Balances.Add(new Balance { UserId = _userId, AssetType = AssetType.Apple, Unit = 5 });
+        await _mockContext.SaveChangesAsync();
+
+        await _scoreCalculator.Calculate(new DateTime(2024, 8, 26, 22, 32, 21, 550));
+        await _scoreCalculator.Calculate(new DateTime(2024, 8, 26, 22, 33, 21, 547));
+
+        var userScore = _mockContext.UserScores.Single(x => x.UserId == _userId);
+        userScore.TotalScore.Should().Be(2650500);
     }
 
     [TearDown]

@@ -1,4 +1,6 @@
-﻿namespace StakingPointsSystem.Models;
+﻿using StakingPointsSystem.Services;
+
+namespace StakingPointsSystem.Models;
 
 public class DepositStatement : IStatement
 {
@@ -19,7 +21,7 @@ public class DepositStatement : IStatement
     protected override decimal CurrentScore(DateRange updatePeriod)
     {
         // remove score before deposit
-        var totalScore = ((int)(DepositTime - updatePeriod.StartTime).TotalSeconds) * GetBaseScore(AssetType) * Unit;
+        var totalScore = ((int)(DepositTime.TrimMilliseconds() - updatePeriod.StartTime.TrimMilliseconds()).TotalSeconds) * GetBaseScore(AssetType) * Unit;
         return -totalScore;
     }
 }

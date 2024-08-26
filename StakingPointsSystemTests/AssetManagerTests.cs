@@ -39,13 +39,4 @@ public class AssetManagerTests
         _mockContext.Assets.Single(x => x.UserId == asset.UserId && x.AssetType == asset.AssetType).Should()
             .BeEquivalentTo(asset);
     }
-
-    [Test]
-    public void METHOD()
-    {
-        var s = new DateTime(2024, 08, 26, 21, 18, 31, 893);
-        var e = new DateTime(2024, 08, 26, 21, 05, 00);
-        var totalSeconds = (s - e).TotalSeconds;
-        //323200.00
-    }
 }
