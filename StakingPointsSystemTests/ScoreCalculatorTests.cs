@@ -24,9 +24,12 @@ public class ScoreCalculatorTests
     [Test]
     public async Task no_deposit_and_no_score()
     {
-        await _scoreCalculator.Calculate(GetTime(59, 50));
-
         var userId = 1;
+        _mockContext.Users.AddRange(new User { UserId = userId });
+        await _mockContext.SaveChangesAsync();
+        
+        await _scoreCalculator.Calculate(GetTime(59, 50));
+        
         var userScore = _mockContext.UserScores.SingleOrDefault(x => x.UserId == userId);
         userScore.Should().BeNull();
     }
@@ -85,7 +88,6 @@ public class ScoreCalculatorTests
         await _mockContext.SaveChangesAsync();
 
         await _scoreCalculator.Calculate(GetTime(59, 50));
-
 
         var userScore = _mockContext.UserScores.Single(x => x.UserId == userId);
         userScore.TotalScore.Should().Be(100 + 20 * 20 * 4); //previous score + second * based score * unit 

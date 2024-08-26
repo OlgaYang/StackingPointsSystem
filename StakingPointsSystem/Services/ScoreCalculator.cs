@@ -16,7 +16,8 @@ public class ScoreCalculator
 
     public async Task Calculate(DateTime updatedTime)
     {
-        var users = _dbContext.Users.ToList();
+        var users = _dbContext.Users
+            .Join(_dbContext.Assets, user => user.UserId, asset => asset.UserId, (user, asset) => user).ToList();
         foreach (var user in users)
         {
             var balanceStatements = await
