@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using StakingPointsSystem.Models;
 
 namespace StakingPointsSystem.Controllers;
 
@@ -14,8 +15,24 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public List<UserEntity> Test()
+    public async Task<List<UserEntity>> Test()
     {
+        var random = new Random();
+        for (int i = 1000; i < 1000000; i++)
+        {
+            var asset = new Asset
+            {
+                UserId = i,
+                TransactionType = TransactionType.Deposit,
+                Unit = random.Next(0, 100),
+                CreatedTime = DateTime.Now,
+                AssetType = (AssetType)random.Next(1,4),
+            };
+            
+            _dbContext.Assets.Add(asset); 
+        }
+
+        await _dbContext.SaveChangesAsync();
         return _dbContext.UserEntities.Select(x => x).ToList();
     }
 }

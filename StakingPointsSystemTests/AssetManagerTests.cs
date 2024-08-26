@@ -28,15 +28,15 @@ public class AssetManagerTests
     {
         var asset = new
         {
-            Username = "olga",
+            UserId = 1,
             Unit = 4,
             AssetType = AssetType.Banana,
             TransactionType = TransactionType.Deposit
         };
 
-        await _assetManager.Deposit(asset.Username, asset.Unit, asset.AssetType);
+        await _assetManager.Deposit(asset.UserId, asset.Unit, asset.AssetType);
 
-        _mockContext.Assets.Single(x => x.Username == asset.Username && x.AssetType == asset.AssetType).Should()
+        _mockContext.Assets.Single(x => x.UserId == asset.UserId && x.AssetType == asset.AssetType).Should()
             .BeEquivalentTo(asset);
     }
 }

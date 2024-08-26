@@ -5,5 +5,5 @@ namespace StakingPointsSystem.Interfaces;
 
 public interface IAssetManager
 {
-    Task Deposit(string assetUsername, int assetUnit, AssetType assetAssetType);
+    Task Deposit(int userId, int unit, AssetType assetType);
 }
