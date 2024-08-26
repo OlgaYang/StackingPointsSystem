@@ -9,4 +9,19 @@ public class Asset
     public AssetType AssetType { get; set; }
     public int Unit { get; set; }
     public DateTime CreatedTime { get; set; }
+
+    public IStatement ToStatement()
+    {
+        if (TransactionType == TransactionType.Deposit)
+        {
+            return new DepositStatement(UserId,CreatedTime,AssetType,Unit);
+        }
+        
+        if (TransactionType == TransactionType.Withdraw)
+        {
+            return new WithdrawStatement(UserId,CreatedTime,AssetType,Unit); 
+        }
+        
+        throw new ArgumentException("Invalid transaction type");
+    }
 }

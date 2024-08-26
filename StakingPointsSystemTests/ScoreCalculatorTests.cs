@@ -1,7 +1,5 @@
 ﻿using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using NSubstitute;
-using NSubstitute.Core;
 using StakingPointsSystem;
 using StakingPointsSystem.Models;
 using StakingPointsSystem.Services;
@@ -10,18 +8,36 @@ namespace StakingPointsSystemTests;
 
 public class ScoreCalculatorTests
 {
-    [Test]
-    public async Task calculate_a_user_score_with_deposit()
+    private StakingPointsDbContext _mockContext;
+    private ScoreCalculator _scoreCalculator;
+
+    [SetUp]
+    public void Setup()
     {
         var options = new DbContextOptionsBuilder<StakingPointsDbContext>()
             .UseInMemoryDatabase(databaseName: "TestDatabase")
             .Options;
+        _mockContext = new StakingPointsDbContext(options);
+        _scoreCalculator = new ScoreCalculator(_mockContext);
+        
+    }
 
-        var mockContext = new StakingPointsDbContext(options);
-
+    [Test]
+    public async Task no_deposit_and_no_score()
+    {
+        await _scoreCalculator.Calculate(GetTime(59, 50)); 
+       
         var userId = 1;
-
-        mockContext.Assets.AddRange(new List<Asset>()
+        var userScore = _mockContext.UserScores.SingleOrDefault(x => x.UserId == userId);
+        userScore.Should().BeNull(); 
+    }
+    
+    
+    [Test]
+    public async Task first_deposit_and_no_score()
+    {
+        var userId = 1;
+        _mockContext.Assets.AddRange(new List<Asset>()
         {
             new()
             {
@@ -29,15 +45,29 @@ public class ScoreCalculatorTests
                 TransactionType = TransactionType.Deposit,
                 AssetType = AssetType.Banana,
                 Unit = 4,
-                CreatedTime = new DateTime(2024, 8, 25, 23, 59, 10)
+                CreatedTime = GetTime(59, 10)
             }
         });
-        await mockContext.SaveChangesAsync();
+        _mockContext.Balances.Add(new Balance { UserId = userId, AssetType = AssetType.Banana, Unit = 4 });
+        
+        await _mockContext.SaveChangesAsync();
+        
+        await _scoreCalculator.Calculate(GetTime(59, 50)); 
+       
+       
+        var userScore = _mockContext.UserScores.Single(x => x.UserId == userId);
+        userScore.TotalScore.Should().Be(40 * 20 * 4); // second * based score * unit 
+    }
 
-        var scoreCalculator = new ScoreCalculator(mockContext);
-        await scoreCalculator.Calculate(new DateTime(2024, 8, 26));
-
-        var userScore = mockContext.UserScores.Single(x => x.UserId == userId);
-        userScore.TotalScore.Should().Be(50 * 20 * 4); // 50*20*4
+    [TearDown]
+    public void TearDown()
+    {
+        _mockContext.Database.EnsureDeleted(); 
+        _mockContext.Dispose();
+    }
+    
+    private static DateTime GetTime(int minute, int second)
+    {
+        return new DateTime(2024, 8, 25, 23, minute, second);
     }
 }
