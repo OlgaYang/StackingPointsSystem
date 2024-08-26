@@ -21,16 +21,8 @@ public class ScoreCalculator
         foreach (var grouping in assetsWithScore.GroupBy(x => x.Asset.UserId))
         {
             var userId = grouping.Key;
-            
-            var initStatement = GetInitStatement(grouping.First().Score, userId);
 
-            var updatePeriod = new DateRange()
-            {
-                StartTime = grouping.First().Score?.LastUpdatedTime ?? await GetFistDepositTime(userId),
-                EndTime = updatedTime
-            };
-
-            IStatement previousStatement = initStatement;
+            IStatement previousStatement = GetInitStatement(grouping.First().Score, userId);
             
             var statements = _dbContext.Balances.Where(x => x.UserId == userId).Select(x => x.ToStatement()).ToList()
                 .Concat(grouping.Select(x => x.Asset.ToStatement()));
@@ -41,10 +33,20 @@ public class ScoreCalculator
                 previousStatement = statement;
             }
 
+            var updatePeriod = new DateRange()
+            {
+                StartTime = await GetStartTime(grouping, userId),
+                EndTime = updatedTime
+            };
             await AddOrUpdateScore(previousStatement, updatePeriod);
         }
         
         await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<DateTime> GetStartTime(IGrouping<int, ScoreWithAsset> grouping, int userId)
+    {
+        return grouping.First().Score?.LastUpdatedTime ?? await GetFistDepositTime(userId);
     }
 
     private static InitStatement GetInitStatement(UserScore? initScore, int userId)
@@ -74,7 +76,7 @@ public class ScoreCalculator
                 (x, s) => new { x.a, s }
             )
             .Where(x => x.a.CreatedTime <= updatedTime
-                        && x.a.CreatedTime > (x.s == null ? new DateTime(2024, 1, 1) : x.s.LastUpdatedTime))
+                        && x.a.CreatedTime > (x.s == null ? System.Data.SqlTypes.SqlDateTime.MinValue.Value : x.s.LastUpdatedTime))
             .Select(x => new ScoreWithAsset()
             {
                 Score = x.s,
