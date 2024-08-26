@@ -16,37 +16,34 @@ public class ScoreCalculator
 
     public async Task Calculate(DateTime updatedTime)
     {
-        var assetsWithScore = await GetScoreWithAssets(updatedTime);
-        
-        foreach (var grouping in assetsWithScore.GroupBy(x => x.Asset.UserId))
+        var users = _dbContext.Users.ToList();
+        foreach (var user in users)
         {
-            var userId = grouping.Key;
+            var balanceStatements = await
+                _dbContext.Balances.Where(x => x.UserId == user.UserId).Select(x => x.ToStatement()).ToListAsync();
+            var userScore = await _dbContext.UserScores.FirstOrDefaultAsync(x => x.UserId == user.UserId);
+            var lastUpdatedTime = userScore?.LastUpdatedTime ?? await GetFistDepositTime(user.UserId);
 
-            IStatement previousStatement = GetInitStatement(grouping.First().Score, userId);
-            
-            var statements = _dbContext.Balances.Where(x => x.UserId == userId).Select(x => x.ToStatement()).ToList()
-                .Concat(grouping.Select(x => x.Asset.ToStatement()));
-            
-            foreach (var statement in statements)
+            var assetStatements = await _dbContext.Assets.Where(x =>
+                    x.UserId == user.UserId && x.CreatedTime < updatedTime && x.CreatedTime >= lastUpdatedTime)
+                .Select(x => x.ToStatement()).ToListAsync();
+
+            IStatement previousStatement = GetInitStatement(userScore, user.UserId);
+
+            foreach (var statement in balanceStatements.Concat(assetStatements))
             {
                 statement.SetPrevious(previousStatement);
                 previousStatement = statement;
             }
 
-            var updatePeriod = new DateRange()
+            await AddOrUpdateScore(previousStatement, new DateRange()
             {
-                StartTime = await GetStartTime(grouping, userId),
+                StartTime = lastUpdatedTime,
                 EndTime = updatedTime
-            };
-            await AddOrUpdateScore(previousStatement, updatePeriod);
+            });
         }
-        
-        await _dbContext.SaveChangesAsync();
-    }
 
-    private async Task<DateTime> GetStartTime(IGrouping<int, ScoreWithAsset> grouping, int userId)
-    {
-        return grouping.First().Score?.LastUpdatedTime ?? await GetFistDepositTime(userId);
+        await _dbContext.SaveChangesAsync();
     }
 
     private static InitStatement GetInitStatement(UserScore? initScore, int userId)
@@ -60,29 +57,6 @@ public class ScoreCalculator
     {
         return (await _dbContext.Assets.OrderBy(x => x.CreatedTime)
             .FirstAsync(x => x.UserId == userId && x.TransactionType == TransactionType.Deposit)).CreatedTime;
-    }
-
-    private async Task<List<ScoreWithAsset>> GetScoreWithAssets(DateTime updatedTime)
-    {
-        return await _dbContext.Assets
-            .GroupJoin(
-                _dbContext.UserScores,
-                a => a.UserId,
-                s => s.UserId,
-                (a, s) => new { a, s }
-            )
-            .SelectMany(
-                x => x.s.DefaultIfEmpty(),
-                (x, s) => new { x.a, s }
-            )
-            .Where(x => x.a.CreatedTime <= updatedTime
-                        && x.a.CreatedTime > (x.s == null ? System.Data.SqlTypes.SqlDateTime.MinValue.Value : x.s.LastUpdatedTime))
-            .Select(x => new ScoreWithAsset()
-            {
-                Score = x.s,
-                Asset = x.a
-            })
-            .ToListAsync();
     }
 
     private async Task AddOrUpdateScore(IStatement previousStatement, DateRange updatePeriod)
@@ -103,10 +77,4 @@ public class ScoreCalculator
             userScore.LastUpdatedTime = updatePeriod.EndTime;
         }
     }
-}
-
-public class ScoreWithAsset
-{
-    public UserScore? Score { get; set; }
-    public Asset Asset { get; set; }
 }

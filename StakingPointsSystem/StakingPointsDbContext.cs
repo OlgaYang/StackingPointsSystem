@@ -17,13 +17,13 @@ public class StakingPointsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<UserEntity>().ToTable("Users").HasKey(x => x.Username);
+        modelBuilder.Entity<User>().ToTable("Users").HasKey(x => x.UserId);
         modelBuilder.Entity<Asset>().ToTable("Assets").HasKey(x => new { x.UserId, x.CreatedTime });
         modelBuilder.Entity<UserScore>().ToTable("UserScores").HasKey(x => x.UserId);
         modelBuilder.Entity<Balance>().ToTable("Balances").HasKey(x => new { x.UserId, x.AssetType });
     }
 
-    public DbSet<UserEntity> UserEntities { get; set; }
+    public DbSet<User> Users { get; set; }
     public DbSet<Asset> Assets { get; set; }
     public DbSet<UserScore> UserScores { get; set; }
     public DbSet<Balance> Balances { get; set; }
@@ -48,10 +48,11 @@ public class UserScore
     public DateTime LastUpdatedTime { get; set; }
 }
 
-public class UserEntity
+public class User
 {
-    public string Username { get; set; }
-    public string Email { get; set; }
-    public string Name { get; set; }
-    public string Password { get; set; }
+    public int UserId { get; set; }
+    // public string Username { get; set; }
+    // public string Email { get; set; }
+    // public string Name { get; set; }
+    // public string Password { get; set; }
 }

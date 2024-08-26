@@ -15,7 +15,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<List<UserEntity>> Test()
+    public async Task<List<User>> Test()
     {
         var random = new Random();
         for (int i = 1000; i < 1000000; i++)
@@ -33,6 +33,6 @@ public class UserController : ControllerBase
         }
 
         await _dbContext.SaveChangesAsync();
-        return _dbContext.UserEntities.Select(x => x).ToList();
+        return _dbContext.Users.Select(x => x).ToList();
     }
 }
