@@ -21,6 +21,8 @@ public class ScoreCalculatorTests
             .UseInMemoryDatabase(databaseName: "TestDatabase")
             .Options;
         _mockContext = new StakingPointsDbContext(options);
+        _mockContext.Users.AddRange(new User { UserId = _userId , Name = "TestUser" });
+        
         var logger = Substitute.For<ILogger<ScoreCalculator>>();
         _scoreCalculator = new ScoreCalculator(_mockContext, logger);
     }
@@ -28,7 +30,6 @@ public class ScoreCalculatorTests
     [Test]
     public async Task no_deposit_and_no_score()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
         await _mockContext.SaveChangesAsync();
 
         await _scoreCalculator.Calculate(GetTime(59, 50));
@@ -44,7 +45,7 @@ public class ScoreCalculatorTests
     // result =  40 second * 20 based score * 4 unit 
     public async Task first_deposit_and_no_score()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
+       
         _mockContext.Assets.AddRange(new List<Asset>
         {
             GetDepositAsset(_userId, AssetType.Banana, 4, GetTime(59, 10))
@@ -66,7 +67,6 @@ public class ScoreCalculatorTests
     // result = 100 previous score + 20 second * 20 based score * 4 unit 
     public async Task no_asset_changed_after_last_update()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
         _mockContext.Assets.AddRange(new List<Asset>()
         {
             GetDepositAsset(_userId, AssetType.Banana, 4, GetTime(59, 10)),
@@ -93,7 +93,6 @@ public class ScoreCalculatorTests
     // result = 100 previous score + (40 second * 20 based score * 6 unit) - before deposit score(30 second * 20 based score * 4 unit)
     public async Task has_deposit_after_last_update()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
         _mockContext.UserScores.Add(new UserScore
             { UserId = _userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
         _mockContext.Assets.AddRange(new List<Asset>()
@@ -116,7 +115,6 @@ public class ScoreCalculatorTests
     // result = 100 previous score + (40 second * 20 based score * 6 unit) + before deposit score(30 second * 20 based score * 4 unit)
     public async Task has_withdraw_after_last_update()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
         _mockContext.UserScores.Add(new UserScore
             { UserId = _userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
         _mockContext.Assets.AddRange(new List<Asset>()
@@ -144,7 +142,6 @@ public class ScoreCalculatorTests
     //          apples (40 second * 100 based score * 2 unit) - before deposit (30 second * 100 based score * 1 unit)
     public async Task has_different_type_deposit_after_last_update()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
         _mockContext.UserScores.Add(new UserScore
         {
             UserId = _userId,
@@ -185,25 +182,24 @@ public class ScoreCalculatorTests
     // result = bananas (10 second * 20 based score * 5 unit)
     public async Task two_user_has_deposit()
     {
-        var userId = 1;
         var userId2 = 2;
-        _mockContext.Users.AddRange(new User { UserId = userId }, new User() { UserId = userId2 });
+        _mockContext.Users.AddRange(new User() { UserId = userId2, Name = "TestUser2"});
         _mockContext.UserScores.Add(new UserScore
-            { UserId = userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
+            { UserId = _userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
         _mockContext.Assets.AddRange(new List<Asset>()
         {
-            GetDepositAsset(userId, AssetType.Banana, 4, GetTime(59, 40)),
+            GetDepositAsset(_userId, AssetType.Banana, 4, GetTime(59, 40)),
             GetDepositAsset(userId2, AssetType.Banana, 5, GetTime(59, 40)),
         });
 
-        _mockContext.Balances.Add(new Balance { UserId = userId, AssetType = AssetType.Banana, Unit = 6 });
+        _mockContext.Balances.Add(new Balance { UserId = _userId, AssetType = AssetType.Banana, Unit = 6 });
         _mockContext.Balances.Add(new Balance { UserId = userId2, AssetType = AssetType.Banana, Unit = 5 });
 
         await _mockContext.SaveChangesAsync();
 
         await _scoreCalculator.Calculate(GetTime(59, 50));
 
-        _mockContext.UserScores.Single(x => x.UserId == userId).TotalScore
+        _mockContext.UserScores.Single(x => x.UserId == _userId).TotalScore
             .Should().Be(100 + (40 * 20 * 6) - (30 * 20 * 4));
 
         _mockContext.UserScores.Single(x => x.UserId == userId2).TotalScore
@@ -217,7 +213,6 @@ public class ScoreCalculatorTests
     // 22:33:21.547 Run update , Balance is 5 apples => 2620500 + 30000 = 2650500  
     public async Task run_update_twice()
     {
-        _mockContext.Users.AddRange(new User { UserId = _userId });
         _mockContext.Assets.AddRange(new List<Asset>()
         {
             GetDepositAsset(_userId, AssetType.Apple, 5, new DateTime(2024, 8, 26, 21, 05, 0)),
