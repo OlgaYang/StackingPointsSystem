@@ -60,39 +60,4 @@ public class UserController : ControllerBase
 
         await _assetManager.Withdraw(userId, assets);
     }
-
-
-    [HttpGet]
-    public async Task<List<User>> Test()
-    {
-        var random = new Random();
-        for (int i = 1; i < 10000; i++)
-        {
-            await _assetManager.Deposit(i, new Dictionary<string, decimal>()
-            {
-                { ((AssetType)random.Next(1, 3)).ToString(), random.Next(0, 20) }
-            });
-            // var asset = new Asset
-            // {
-            //     UserId = i,
-            //     TransactionType = TransactionType.Deposit,
-            //     Unit = random.Next(0, 20),
-            //     CreatedTime = DateTime.Now,
-            //     AssetType = (AssetType)random.Next(1, 3),
-            // };
-            //
-            // _dbContext.Assets.Add(asset);
-        }
-
-        // await _dbContext.SaveChangesAsync();
-        // return _dbContext.Users.Select(x => x).ToList();
-        return null;
-    }
-}
-
-public class AssetRequest
-{
-    public decimal Score { get; set; }
-    public int Rank { get; set; }
-    public Dictionary<string, decimal> Balances { get; set; }
 }
