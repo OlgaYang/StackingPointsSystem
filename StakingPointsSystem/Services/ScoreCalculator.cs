@@ -20,30 +20,35 @@ public class ScoreCalculator
             .Join(_dbContext.Assets, user => user.UserId, asset => asset.UserId, (user, asset) => user).ToList();
         foreach (var user in users)
         {
-            var balanceStatements = await
-                _dbContext.Balances.Where(x => x.UserId == user.UserId).Select(x => x.ToStatement()).ToListAsync();
-            var userScore = await _dbContext.UserScores.FirstOrDefaultAsync(x => x.UserId == user.UserId);
-            var lastUpdatedTime = userScore?.LastUpdatedTime ?? await GetFistDepositTime(user.UserId);
+            await UpsertScore(updatedTime, user);
+        }
+    }
 
-            var assetStatements = await _dbContext.Assets.Where(x =>
-                    x.UserId == user.UserId && x.CreatedTime < updatedTime && x.CreatedTime >= lastUpdatedTime)
-                .Select(x => x.ToStatement()).ToListAsync();
+    private async Task UpsertScore(DateTime updatedTime, User user)
+    {
+        var balanceStatements = await
+            _dbContext.Balances.Where(x => x.UserId == user.UserId).Select(x => x.ToStatement()).ToListAsync();
+        var userScore = await _dbContext.UserScores.FirstOrDefaultAsync(x => x.UserId == user.UserId);
+        var lastUpdatedTime = userScore?.LastUpdatedTime ?? await GetFistDepositTime(user.UserId);
 
-            IStatement previousStatement = GetInitStatement(userScore, user.UserId);
+        var assetStatements = await _dbContext.Assets.Where(x =>
+                x.UserId == user.UserId && x.CreatedTime < updatedTime && x.CreatedTime >= lastUpdatedTime)
+            .Select(x => x.ToStatement()).ToListAsync();
 
-            foreach (var statement in balanceStatements.Concat(assetStatements))
-            {
-                statement.SetPrevious(previousStatement);
-                previousStatement = statement;
-            }
+        IStatement previousStatement = GetInitStatement(userScore, user.UserId);
 
-            await AddOrUpdateScore(previousStatement, new DateRange()
-            {
-                StartTime = lastUpdatedTime,
-                EndTime = updatedTime
-            });
+        foreach (var statement in balanceStatements.Concat(assetStatements))
+        {
+            statement.SetPrevious(previousStatement);
+            previousStatement = statement;
         }
 
+        await AddOrUpdateScore(previousStatement, new DateRange()
+        {
+            StartTime = lastUpdatedTime,
+            EndTime = updatedTime
+        });
+            
         await _dbContext.SaveChangesAsync();
     }
 
