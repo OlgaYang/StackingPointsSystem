@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StakingPointsSystem;
+using StakingPointsSystem.Interfaces;
 using StakingPointsSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddHostedService<TimedHostedService>();
 builder.Services.AddScoped<ScoreCalculator>();
+builder.Services.AddScoped<IAssetManager, AssetManager>();
 builder.Services.AddDbContext<StakingPointsDbContext>(options =>
     options.UseSqlServer("Server=DESKTOP-MN3CUAK;Database=StakingPoints;Trusted_Connection=True;"));
 

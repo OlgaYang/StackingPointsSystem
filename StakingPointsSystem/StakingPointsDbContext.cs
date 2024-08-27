@@ -18,7 +18,7 @@ public class StakingPointsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().ToTable("Users").HasKey(x => x.UserId);
-        modelBuilder.Entity<Asset>().ToTable("Assets").HasKey(x => new { x.UserId, x.AssetType });
+        modelBuilder.Entity<Asset>().ToTable("Assets").HasKey(x => x.Id);
         modelBuilder.Entity<UserScore>().ToTable("UserScores").HasKey(x => x.UserId);
         modelBuilder.Entity<Balance>().ToTable("Balances").HasKey(x => new { x.UserId, x.AssetType });
     }

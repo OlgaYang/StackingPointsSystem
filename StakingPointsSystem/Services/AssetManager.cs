@@ -15,14 +15,74 @@ public class AssetManager : IAssetManager
         _stakingPointsDbContext = stakingPointsDbContext;
     }
 
-    public async Task Deposit(int userId, int unit, AssetType assetType)
+    public async Task Deposit(int userId, decimal unit, AssetType assetType)
+    {
+        using var transaction = await _stakingPointsDbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await DepositBalance(userId, unit, assetType);
+            await InsertAsset(userId, unit, assetType, TransactionType.Deposit);
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task Withdraw(int userId, Dictionary<string, decimal> assets)
+    {
+        using var transaction = await _stakingPointsDbContext.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var asset in assets)
+            {
+                await Withdraw(userId, asset.Value, Enum.Parse<AssetType>(asset.Key, true));
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private async Task Withdraw(int userId, decimal unit, AssetType assetType)
+    {
+        await WithdrawBalance(userId, unit, assetType);
+        await InsertAsset(userId, unit, assetType, TransactionType.Withdraw);
+    }
+
+    private async Task WithdrawBalance(int userId, decimal unit, AssetType assetType)
+    {
+        var sql =
+            @"IF EXISTS (SELECT 1 FROM Balances WITH(XLOCK, ROWLOCK) WHERE UserId = @UserId and AssetType = @AssetType and Unit >= @Unit )
+BEGIN
+   UPDATE Balances 
+   SET Unit = Unit - @Unit
+   WHERE UserId = @UserId and AssetType = @AssetType
+END";
+        var affectedRow = await _stakingPointsDbContext.Database.ExecuteSqlRawAsync(sql,
+            new SqlParameter("@Unit", unit),
+            new SqlParameter("UserId", userId), new SqlParameter("@AssetType", assetType));
+        if (affectedRow == -1)
+        {
+            throw new WithdrawFailException("Not enough balance");
+        }
+    }
+
+    private async Task InsertAsset(int userId, decimal unit, AssetType assetType, TransactionType transactionType)
     {
         var asset = new Asset()
         {
             AssetType = assetType,
             Unit = unit,
             UserId = userId,
-            TransactionType = TransactionType.Deposit,
+            TransactionType = transactionType,
             CreatedTime = DateTime.Now
         };
 
@@ -30,25 +90,31 @@ public class AssetManager : IAssetManager
         await _stakingPointsDbContext.SaveChangesAsync();
     }
 
-    public async Task Withdraw(string username, int unit, AssetType assetType)
+    private async Task DepositBalance(int userId, decimal unit, AssetType assetType)
     {
-        // TODO: 檢查庫存
-        // TODO: Avoid double click
-        
-        using (var transaction = await _stakingPointsDbContext.Database.BeginTransactionAsync())
-        {
-            var sql = "SELECT * FROM Assets WITH (XLOCK, ROWLOCK) WHERE Username = @Username";
-            var id = 1;
+        string sql =
+            @" IF EXISTS (SELECT 1 FROM Balances WITH(XLOCK, ROWLOCK) WHERE UserId = @UserId and AssetType = @AssetType)
+BEGIN
+   UPDATE Balances 
+   SET Unit = Unit + @Unit
+   WHERE UserId = @UserId and AssetType = @AssetType
 
-            var entity = _stakingPointsDbContext.Assets
-                .FromSqlRaw(sql, new SqlParameter("@Username", username))
-                .FirstOrDefault();
+END
+ELSE
+BEGIN   
+    INSERT INTO Balances (UserId, AssetType, Unit)
+    VALUES (@UserId, @AssetType,  @Unit);
+END";
 
-            // 在這裡可以進行其他需要在同一個 XLOCK 上執行的操作
+        await _stakingPointsDbContext.Database.ExecuteSqlRawAsync(sql, new SqlParameter("@Unit", unit),
+            new SqlParameter("UserId", userId), new SqlParameter("@AssetType", assetType));
+    }
+}
 
-            transaction.Commit();
-        }
-        
-        throw new NotImplementedException();
+public class WithdrawFailException : Exception
+{
+    public WithdrawFailException(string empty)
+    {
+        throw new Exception(empty);
     }
 }

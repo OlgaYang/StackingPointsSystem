@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StakingPointsSystem.Interfaces;
 using StakingPointsSystem.Models;
 
 namespace StakingPointsSystem.Controllers;
@@ -9,10 +10,12 @@ namespace StakingPointsSystem.Controllers;
 public class UserController : ControllerBase
 {
     private readonly StakingPointsDbContext _dbContext;
+    private readonly IAssetManager _assetManager;
 
-    public UserController(StakingPointsDbContext dbContext)
+    public UserController(StakingPointsDbContext dbContext, IAssetManager assetManager)
     {
         _dbContext = dbContext;
+        _assetManager = assetManager;
     }
 
     [HttpGet]
@@ -29,6 +32,37 @@ public class UserController : ControllerBase
                 .ToDictionaryAsync(x => x.AssetType.ToString(), x => x.Unit)
         };
     }
+
+    [HttpPost]
+    public async Task Deposit(int userId, Dictionary<string, decimal> assets)
+    {
+        foreach (var asset in assets)
+        {
+            if (Enum.TryParse(asset.Key, true, out AssetType assetType))
+            {
+                await _assetManager.Deposit(userId, asset.Value, assetType);
+            }
+            else
+            {
+                throw new ArgumentException("Invalid asset type");
+            }
+        }
+    }
+
+    [HttpPost]
+    public async Task Withdraw(int userId, Dictionary<string, decimal> assets)
+    {
+        foreach (var asset in assets)
+        {
+            if (!Enum.TryParse(asset.Key, true, out AssetType assetType))
+            {
+                throw new ArgumentException("Invalid asset type");
+            }
+        }
+        
+        await _assetManager.Withdraw(userId, assets);
+    }
+
 
     [HttpGet]
     public async Task<List<User>> Test()
