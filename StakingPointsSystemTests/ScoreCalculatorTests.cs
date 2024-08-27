@@ -21,8 +21,8 @@ public class ScoreCalculatorTests
             .UseInMemoryDatabase(databaseName: "TestDatabase")
             .Options;
         _mockContext = new StakingPointsDbContext(options);
-        _mockContext.Users.AddRange(new User { UserId = _userId , Name = "TestUser" });
-        
+        _mockContext.Users.AddRange(new User { UserId = _userId, Name = "TestUser", Username = "TestUser" });
+
         var logger = Substitute.For<ILogger<ScoreCalculator>>();
         _scoreCalculator = new ScoreCalculator(_mockContext, logger);
     }
@@ -45,7 +45,6 @@ public class ScoreCalculatorTests
     // result =  40 second * 20 based score * 4 unit 
     public async Task first_deposit_and_no_score()
     {
-       
         _mockContext.Assets.AddRange(new List<Asset>
         {
             GetDepositAsset(_userId, AssetType.Banana, 4, GetTime(59, 10))
@@ -183,7 +182,7 @@ public class ScoreCalculatorTests
     public async Task two_user_has_deposit()
     {
         var userId2 = 2;
-        _mockContext.Users.AddRange(new User() { UserId = userId2, Name = "TestUser2"});
+        _mockContext.Users.AddRange(new User() { UserId = userId2, Name = "TestUser2", Username = "TestUser2" });
         _mockContext.UserScores.Add(new UserScore
             { UserId = _userId, TotalScore = 100, LastUpdatedTime = GetTime(59, 10) });
         _mockContext.Assets.AddRange(new List<Asset>()
