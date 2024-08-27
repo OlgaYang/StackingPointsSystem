@@ -14,24 +14,7 @@ public class AssetManager : IAssetManager
     {
         _stakingPointsDbContext = stakingPointsDbContext;
     }
-
-    public async Task Deposit(int userId, decimal unit, AssetType assetType)
-    {
-        using var transaction = await _stakingPointsDbContext.Database.BeginTransactionAsync();
-        try
-        {
-            await DepositBalance(userId, unit, assetType);
-            await InsertAsset(userId, unit, assetType, TransactionType.Deposit);
-
-            await transaction.CommitAsync();
-        }
-        catch (Exception e)
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-    }
-
+    
     public async Task Withdraw(int userId, Dictionary<string, decimal> assets)
     {
         using var transaction = await _stakingPointsDbContext.Database.BeginTransactionAsync();
@@ -49,6 +32,31 @@ public class AssetManager : IAssetManager
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task Deposit(int userId, Dictionary<string, decimal> assets)
+    {
+        using var transaction = await _stakingPointsDbContext.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var asset in assets)
+            {
+                await Deposit(userId, asset.Value, Enum.Parse<AssetType>(asset.Key, true));
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task Deposit(int userId, decimal unit, AssetType assetType)
+    {
+        await DepositBalance(userId, unit, assetType);
+        await InsertAsset(userId, unit, assetType, TransactionType.Deposit);
     }
 
     private async Task Withdraw(int userId, decimal unit, AssetType assetType)

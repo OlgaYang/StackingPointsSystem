@@ -38,15 +38,13 @@ public class UserController : ControllerBase
     {
         foreach (var asset in assets)
         {
-            if (Enum.TryParse(asset.Key, true, out AssetType assetType))
-            {
-                await _assetManager.Deposit(userId, asset.Value, assetType);
-            }
-            else
+            if (!Enum.TryParse(asset.Key, true, out AssetType assetType))
             {
                 throw new ArgumentException("Invalid asset type");
             }
         }
+        
+        await _assetManager.Deposit(userId, assets);
     }
 
     [HttpPost]
@@ -59,7 +57,7 @@ public class UserController : ControllerBase
                 throw new ArgumentException("Invalid asset type");
             }
         }
-        
+
         await _assetManager.Withdraw(userId, assets);
     }
 

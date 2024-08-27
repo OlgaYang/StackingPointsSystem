@@ -7,4 +7,5 @@ public interface IAssetManager
 {
     Task Deposit(int userId, decimal unit, AssetType assetType);
     Task Withdraw(int userId, Dictionary<string,decimal> assets);
+    Task Deposit(int userId, Dictionary<string, decimal> assets);
 }
